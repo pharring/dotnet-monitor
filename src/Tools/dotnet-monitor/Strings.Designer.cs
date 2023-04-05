@@ -223,11 +223,38 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The extension file &apos;{0}&apos; for extension &apos;{1}&apos; could not be found..
+        /// </summary>
+        internal static string ErrorMessage_ExtensionFileNotFound {
+            get {
+                return ResourceManager.GetString("ErrorMessage_ExtensionFileNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The extension &apos;{extensionName}&apos; failed to launch..
         /// </summary>
         internal static string ErrorMessage_ExtensionLaunchFailed {
             get {
                 return ResourceManager.GetString("ErrorMessage_ExtensionLaunchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid extension manifest: {0}.
+        /// </summary>
+        internal static string ErrorMessage_ExtensionManifestInvalid {
+            get {
+                return ResourceManager.GetString("ErrorMessage_ExtensionManifestInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find extension manifest at &apos;{0}&apos;.
+        /// </summary>
+        internal static string ErrorMessage_ExtensionManifestNotFound {
+            get {
+                return ResourceManager.GetString("ErrorMessage_ExtensionManifestNotFound", resourceCulture);
             }
         }
         
@@ -1079,6 +1106,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Egress provider type &apos;{type}&apos; does not exist..
+        /// </summary>
+        internal static string LogFormatString_EgressProviderTypeNotExist {
+            get {
+                return ResourceManager.GetString("LogFormatString_EgressProviderTypeNotExist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unexpected timeout from process {processId}. Process will no longer be monitored..
         /// </summary>
         internal static string LogFormatString_EndpointTimeout {
@@ -1115,15 +1151,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The extension &apos;{extensionName}&apos; declaration file &apos;{extensionDeclarationFile}&apos; is missing or incorrectly formed..
-        /// </summary>
-        internal static string LogFormatString_ExtensionDeclarationFileBroken {
-            get {
-                return ResourceManager.GetString("LogFormatString_ExtensionDeclarationFileBroken", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Payload egress complete to extension process {pid}, waiting for process exit..
         /// </summary>
         internal static string LogFormatString_ExtensionEgressPayloadCompleted {
@@ -1156,6 +1183,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         internal static string LogFormatString_ExtensionMalformedOutput {
             get {
                 return ResourceManager.GetString("LogFormatString_ExtensionMalformedOutput", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The extension manifest file &apos;{manifestPath}&apos; is missing or incorrectly formed..
+        /// </summary>
+        internal static string LogFormatString_ExtensionManifestNotParsable {
+            get {
+                return ResourceManager.GetString("LogFormatString_ExtensionManifestNotParsable", resourceCulture);
             }
         }
         
@@ -1210,15 +1246,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         internal static string LogFormatString_ExtensionProbeSucceeded {
             get {
                 return ResourceManager.GetString("LogFormatString_ExtensionProbeSucceeded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The extension &apos;{extensionName}&apos;&apos;s program defined in &apos;{extensionDeclarationFile}&apos; is missing the program to execute &apos;{program}&apos;..
-        /// </summary>
-        internal static string LogFormatString_ExtensionProgramMissing {
-            get {
-                return ResourceManager.GetString("LogFormatString_ExtensionProgramMissing", resourceCulture);
             }
         }
         
@@ -1489,15 +1516,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         internal static string Message_ExperienceSurvey {
             get {
                 return ResourceManager.GetString("Message_ExperienceSurvey", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to folder &apos;{0}&apos;.
-        /// </summary>
-        internal static string Message_FolderExtensionRepoName {
-            get {
-                return ResourceManager.GetString("Message_FolderExtensionRepoName", resourceCulture);
             }
         }
         

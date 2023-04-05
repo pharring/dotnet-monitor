@@ -307,7 +307,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 eventId: LoggingEventIds.ExperienceSurvey.EventId(),
                 logLevel: LogLevel.Information,
                 formatString: Strings.LogFormatString_ExperienceSurvey);
-                
+
         private static readonly Action<ILogger, Exception> _diagnosticPortNotInListenModeForCollectionRules =
             LoggerMessage.Define(
                 eventId: LoggingEventIds.DiagnosticPortNotInListenModeForCollectionRules.EventId(),
@@ -374,17 +374,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 logLevel: LogLevel.Error,
                 formatString: Strings.LogFormatString_ExtensionNotOfType);
 
-        private static readonly Action<ILogger, string, string, Exception> _extensionDeclarationFileBroken =
-            LoggerMessage.Define<string, string>(
-                eventId: LoggingEventIds.ExtensionDeclarationFileBroken.EventId(),
+        private static readonly Action<ILogger, string, Exception> _extensionManifestNotParsable =
+            LoggerMessage.Define<string>(
+                eventId: LoggingEventIds.ExtensionManifestNotParsable.EventId(),
                 logLevel: LogLevel.Error,
-                formatString: Strings.LogFormatString_ExtensionDeclarationFileBroken);
-
-        private static readonly Action<ILogger, string, string, string, Exception> _extensionProgramMissing =
-            LoggerMessage.Define<string, string, string>(
-                eventId: LoggingEventIds.ExtensionProgramMissing.EventId(),
-                logLevel: LogLevel.Error,
-                formatString: Strings.LogFormatString_ExtensionProgramMissing);
+                formatString: Strings.LogFormatString_ExtensionManifestNotParsable);
 
         private static readonly Action<ILogger, int, string, string, Exception> _extensionMalformedOutput =
             LoggerMessage.Define<int, string, string>(
@@ -493,6 +487,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 eventId: LoggingEventIds.StartupHookInstructions.EventId(),
                 logLevel: LogLevel.Warning,
                 formatString: Strings.LogFormatString_StartupHookInstructions);
+
+        private static readonly Action<ILogger, string, Exception> _egressProviderTypeNotExist =
+            LoggerMessage.Define<string>(
+                eventId: LoggingEventIds.EgressProviderTypeNotExist.EventId(),
+                logLevel: LogLevel.Warning,
+                formatString: Strings.LogFormatString_EgressProviderTypeNotExist);
 
         public static void EgressProviderInvalidOptions(this ILogger logger, string providerName)
         {
@@ -753,7 +753,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         {
             _experienceSurvey(logger, Monitor.ExperienceSurvey.ExperienceSurveyLink, null);
         }
-        
+
         public static void DiagnosticPortNotInListenModeForCollectionRules(this ILogger logger)
         {
             _diagnosticPortNotInListenModeForCollectionRules(logger, null);
@@ -809,14 +809,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             _extensionNotOfType(logger, extensionName, extension.DisplayName, desiredType.Name, null);
         }
 
-        public static void ExtensionDeclarationFileBroken(this ILogger logger, string extensionName, string extensionDeclarationFile, Exception ex)
+        public static void ExtensionManifestNotParsable(this ILogger logger, string manifestFile, Exception ex)
         {
-            _extensionDeclarationFileBroken(logger, extensionName, extensionDeclarationFile, ex);
-        }
-
-        public static void ExtensionProgramMissing(this ILogger logger, string extensionName, string extensionDeclarationFile, string program)
-        {
-            _extensionProgramMissing(logger, extensionName, extensionDeclarationFile, program, null);
+            _extensionManifestNotParsable(logger, manifestFile, ex);
         }
 
         public static void ExtensionMalformedOutput(this ILogger logger, int pid, string message, Type resultType)
@@ -907,6 +902,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public static void StartupHookInstructions(this ILogger logger, string startupHookLibraryPath)
         {
             _startupHookInstructions(logger, startupHookLibraryPath, null);
+        }
+
+        public static void EgressProviderTypeNotExist(this ILogger logger, string providerType)
+        {
+            _egressProviderTypeNotExist(logger, providerType, null);
         }
     }
 }

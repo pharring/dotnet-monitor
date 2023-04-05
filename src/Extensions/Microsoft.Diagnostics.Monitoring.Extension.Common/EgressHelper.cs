@@ -2,11 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,27 +21,47 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.Common
         private static Stream StdInStream;
         private static CancellationTokenSource CancelSource = new CancellationTokenSource();
 
-        internal static Command CreateEgressCommand<TOptions>(EgressProvider<TOptions> provider, Action<ExtensionEgressPayload, TOptions> configureOptions = null) where TOptions : class, new()
+        internal static Command CreateEgressCommand<TOptions>(EgressProvider<TOptions> provider, Action<ExtensionEgressPayload, TOptions, ILogger> configureOptions = null) where TOptions : class, new()
         {
             Command egressCmd = new Command("Egress", "The class of extension being invoked; Egress is for egressing an artifact.");
 
-            egressCmd.SetActionWithExitCode((context, token) => Egress(provider, token, configureOptions));
+            egressCmd.SetAction((result, token) => Egress(provider, token, configureOptions));
 
             return egressCmd;
         }
 
-        private static async Task<int> Egress<TOptions>(EgressProvider<TOptions> provider, CancellationToken token, Action<ExtensionEgressPayload, TOptions> configureOptions = null) where TOptions : class, new()
+        private static async Task<int> Egress<TOptions>(EgressProvider<TOptions> provider, CancellationToken token, Action<ExtensionEgressPayload, TOptions, ILogger> configureOptions = null) where TOptions : class, new()
         {
             EgressArtifactResult result = new();
             try
             {
                 string jsonConfig = Console.ReadLine();
                 ExtensionEgressPayload configPayload = JsonSerializer.Deserialize<ExtensionEgressPayload>(jsonConfig);
-                TOptions options = BuildOptions(configPayload, configureOptions);
+
+                using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+                {
+                    builder.AddConsole().SetMinimumLevel(configPayload.LogLevel);
+                });
+                ILogger logger = loggerFactory.CreateLogger<EgressHelper>();
+
+                TOptions options = BuildOptions(configPayload, logger, configureOptions);
+
+                var context = new ValidationContext(options);
+
+                var results = new List<ValidationResult>();
+
+                if (!Validator.TryValidateObject(options, context, results, true))
+                {
+                    if (results.Count > 0)
+                    {
+                        throw new EgressException(results.First().ErrorMessage);
+                    }
+                }
 
                 Console.CancelKeyPress += Console_CancelKeyPress;
 
-                result.ArtifactPath = await provider.EgressAsync(options,
+                result.ArtifactPath = await provider.EgressAsync(logger,
+                    options,
                     GetStream,
                     configPayload.Settings,
                     token);
@@ -57,11 +81,11 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.Common
             return result.Succeeded ? 0 : 1;
         }
 
-        private static TOptions BuildOptions<TOptions>(ExtensionEgressPayload configPayload, Action<ExtensionEgressPayload, TOptions> configureOptions = null) where TOptions : new()
+        private static TOptions BuildOptions<TOptions>(ExtensionEgressPayload configPayload, ILogger logger, Action<ExtensionEgressPayload, TOptions, ILogger> configureOptions = null) where TOptions : new()
         {
             TOptions options = GetOptions<TOptions>(configPayload);
 
-            configureOptions?.Invoke(configPayload, options);
+            configureOptions?.Invoke(configPayload, options, logger);
 
             return options;
         }
@@ -100,5 +124,7 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.Common
         public Dictionary<string, string> Properties { get; set; }
         public Dictionary<string, string> Configuration { get; set; }
         public string ProviderName { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public LogLevel LogLevel { get; set; }
     }
 }

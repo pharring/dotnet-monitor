@@ -23,14 +23,6 @@ namespace Microsoft.Diagnostics.Monitoring.AzureMonitorDiagnostics;
 internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<AzureMonitorDiagnosticsEgressProviderOptions>
 {
     /// <summary>
-    /// Construct a new <see cref="AzureMonitorDiagnosticsEgressProvider"/> instance.
-    /// </summary>
-    /// <param name="logger">A logger.</param>
-    public AzureMonitorDiagnosticsEgressProvider(ILogger logger) : base(logger)
-    {
-    }
-
-    /// <summary>
     /// The main method for an egress provider. Uploads a stream to the Azure
     /// Monitor Diagnostic Services endpoint.
     /// </summary>
@@ -40,11 +32,13 @@ internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<Azu
     /// <param name="token">A cancellation token.</param>
     /// <returns></returns>
     public override async Task<string> EgressAsync(
+        ILogger logger,
         AzureMonitorDiagnosticsEgressProviderOptions options,
         Func<Stream, CancellationToken, Task> action,
         EgressArtifactSettings artifactSettings,
         CancellationToken token)
     {
+        Logger = logger;
         ConnectionString connectionString = options.ValidatedConnectionString!;
         string iKey = connectionString.InstrumentationKey;
 
@@ -89,7 +83,7 @@ internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<Azu
 
         using (Stream blobStream = await blobClient.OpenWriteAsync(overwrite: true, blobOptions, token))
         {
-            _logger.EgressProviderInvokeStreamAction(Constants.Provider.Name);
+            Logger.EgressProviderInvokeStreamAction(Constants.Provider.Name);
             await action(blobStream, token);
             await blobStream.FlushAsync(token);
         }
@@ -103,12 +97,12 @@ internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<Azu
         }
         catch (Exception ex) when (ex is InvalidOperationException or RequestFailedException)
         {
-            _logger.InvalidMetadata(ex);
+            Logger.InvalidMetadata(ex);
             blobInfo = await blobClient.SetMetadataAsync(artifactSettings.Metadata, cancellationToken: token);
         }
 
         ArtifactAccepted artifactInfo = await client.CommitUploadAsync(iKey, ArtifactKind.Profile, artifactId, blobInfo.ETag, token);
-        _logger.EgressProviderSavedStream(Constants.Provider.Name, artifactInfo.ArtifactLocationId!);
+        Logger.EgressProviderSavedStream(Constants.Provider.Name, artifactInfo.ArtifactLocationId!);
         return artifactInfo.ArtifactLocationId!;
     }
 
@@ -142,7 +136,7 @@ internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<Azu
             }
             else
             {
-                _logger.DuplicateKeyInMetadata(metadataPair.Key);
+                Logger.DuplicateKeyInMetadata(metadataPair.Key);
             }
         }
 

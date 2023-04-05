@@ -22,9 +22,10 @@ using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Triggers.Event
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers;
 using Microsoft.Diagnostics.Tools.Monitor.Egress;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.Configuration;
+using Microsoft.Diagnostics.Tools.Monitor.Egress.Extension;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem;
-using Microsoft.Diagnostics.Tools.Monitor.Extensibility;
 using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
+using Microsoft.Diagnostics.Tools.Monitor.Extensibility;
 using Microsoft.Diagnostics.Tools.Monitor.LibrarySharing;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
@@ -229,10 +230,20 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             return services.Configure<T>(configuration.GetSection(key));
         }
 
-        public static IServiceCollection ConfigureExtensions(this IServiceCollection services, HostBuilderSettings settings)
+        public static IServiceCollection ConfigureExtensions(this IServiceCollection services)
         {
-            // Add the services to discover extensions
+            // Extension discovery
             services.AddSingleton<ExtensionDiscoverer>();
+            // Extension type factories
+            services.AddSingleton<EgressExtensionFactory>();
+            // Well-known extensions
+            services.AddSingleton<ExtensionRepository, WellKnownExtensionRepository>();
+            services.AddSingleton<IWellKnownExtensionFactory, FileSystemEgressExtensionFactory>();
+            return services;
+        }
+
+        public static IServiceCollection ConfigureExtensionLocations(this IServiceCollection services, HostBuilderSettings settings)
+        {
             services.TryAddSingleton<IDotnetToolsFileSystem, DefaultDotnetToolsFileSystem>();
 
             string executingAssemblyFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -263,8 +274,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 (IServiceProvider serviceProvider) =>
                 {
                     IFileProvider fileProvider = GetFileProvider(targetExtensionFolder);
-                    ILogger<ProgramExtension> logger = serviceProvider.GetRequiredService<ILogger<ProgramExtension>>();
-                    return new FolderExtensionRepository(fileProvider, logger, targetExtensionFolder);
+                    EgressExtensionFactory egressExtensionFactory = serviceProvider.GetRequiredService<EgressExtensionFactory>();
+                    ILogger<FolderExtensionRepository> logger = serviceProvider.GetRequiredService<ILogger<FolderExtensionRepository>>();
+                    return new FolderExtensionRepository(fileProvider, egressExtensionFactory, logger);
                 };
 
             services.AddSingleton<ExtensionRepository>(createDelegate);
@@ -284,20 +296,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         public static IServiceCollection ConfigureEgress(this IServiceCollection services)
         {
-            // Register IEgressService implementation that provides egressing
-            // of artifacts for the REST server.
+            services.AddSingleton<IEgressConfigurationProvider, EgressConfigurationProvider>();
+            services.AddSingleton<EgressProviderSource>();
             services.AddSingleton<IEgressService, EgressService>();
-
-            services.AddSingleton<IEgressPropertiesConfigurationProvider, EgressPropertiesConfigurationProvider>();
-            services.AddSingleton<IEgressPropertiesProvider, EgressPropertiesProvider>();
-
-            services.AddSingleton<IOptionsTypeToProviderTypesMapper, OptionsTypeToProviderTypesMapper>();
-
-            // Register egress providers
-            services.RegisterEgressType<FileSystemEgressProviderOptions, FileSystemEgressProvider>();
-            services.AddSingleton<IConfigureOptions<FileSystemEgressProviderOptions>, EgressProviderConfigureNamedOptions<FileSystemEgressProviderOptions>>();
-
-            services.RegisterEgressType<ExtensionEgressProviderOptions, ExtensionEgressProvider>();
 
             return services;
         }
@@ -351,33 +352,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 ILogger<Startup> logger = services.GetRequiredService<ILogger<Startup>>();
                 return authConfigurator.CreateStartupLogger(logger, services);
             });
-            return services;
-        }
-
-        public static IServiceCollection RegisterEgressType<TOptions, TProvider>(this IServiceCollection services)
-            where TProvider : class, IEgressProvider<TOptions>
-            where TOptions : class
-        {
-            // These Singletons are "IEnumerable<T>" services where there are multiple services registered (if TOptions is the same)
-            // Add services to provide raw configuration for the options type
-            services.AddSingleton<EgressProviderConfigurationProvider<TOptions>>();
-            services.AddSingletonForwarder<IEgressProviderConfigurationProvider<TOptions>, EgressProviderConfigurationProvider<TOptions>>();
-            services.AddSingletonForwarder<IEgressProviderConfigurationProvider, EgressProviderConfigurationProvider<TOptions>>();
-
-            // Register change sources for the options type
-            services.AddSingleton<IOptionsChangeTokenSource<TOptions>, EgressPropertiesConfigurationChangeTokenSource<TOptions>>();
-            services.AddSingleton<IOptionsChangeTokenSource<TOptions>, EgressProviderConfigurationChangeTokenSource<TOptions>>();
-
-            // Add options services for configuring the options type
-            services.AddSingleton<IValidateOptions<TOptions>, DataAnnotationValidateOptions<TOptions>>();
-
-            // Add custom options cache to override behavior of default named options
-            services.AddSingleton<IOptionsMonitorCache<TOptions>, DynamicNamedOptionsCache<TOptions>>();
-
-            // Add egress provider and internal provider wrapper
-            services.AddSingleton<IEgressProvider<TOptions>, TProvider>();
-            services.AddSingleton<IEgressProviderInternal<TOptions>, EgressProviderInternal<TOptions>>();
-
+            services.AddSingleton<IStartupLogger, EgressStartupLogger>();
             return services;
         }
 

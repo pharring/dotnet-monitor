@@ -26,16 +26,14 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
 
         internal StorageFactory ClientFactory = new();
 
-        public S3StorageEgressProvider(ILogger logger) : base(logger)
-        {
-        }
-
         public override async Task<string> EgressAsync(
+            ILogger logger,
             S3StorageEgressProviderOptions options,
             Func<Stream, CancellationToken, Task> action,
             EgressArtifactSettings artifactSettings,
             CancellationToken token)
         {
+            Logger = logger;
             IS3Storage client = null;
             string uploadId = null;
             bool uploadDone = false;
@@ -43,9 +41,8 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
             {
                 client = await ClientFactory.CreateAsync(options, artifactSettings, token);
                 uploadId = await client.InitMultiPartUploadAsync(artifactSettings.Metadata, token);
-                int copyBufferSize = options.CopyBufferSize.GetValueOrDefault(0x100000);
-                await using var stream = new MultiPartUploadStream(client, options.BucketName, artifactSettings.Name, uploadId, copyBufferSize);
-                _logger.EgressProviderInvokeStreamAction(Constants.S3StorageProviderName);
+                await using var stream = new MultiPartUploadStream(client, options.BucketName, artifactSettings.Name, uploadId, options.CopyBufferSize);
+                Logger.EgressProviderInvokeStreamAction(Constants.S3StorageProviderName);
                 await action(stream, token);
                 await stream.FinalizeAsync(token); // force to push the last part
 
@@ -70,18 +67,18 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
             {
                 if (uploadId != null && !uploadDone)
                     await client.AbortMultipartUploadAsync(uploadId, token);
-                throw CreateException(string.Format(CultureInfo.CurrentCulture, Strings.ErrorMessage_EgressS3FailedDetailed, e.Message));
+                throw CreateException(e.Message);
             }
         }
 
         private string GetResourceId(IS3Storage client, S3StorageEgressProviderOptions options, EgressArtifactSettings artifactSettings)
         {
-            if (!options.GeneratePreSignedUrl)
+            if (!options.PreSignedUrlExpiry.HasValue)
                 return $"BucketName={options.BucketName}, Key={artifactSettings.Name}";
 
             DateTime expires = DateTime.UtcNow.Add(options.PreSignedUrlExpiry!.Value);
             string resourceId = client.GetTemporaryResourceUrl(expires);
-            _logger.EgressProviderSavedStream(Constants.S3StorageProviderName, resourceId);
+            Logger.EgressProviderSavedStream(Constants.S3StorageProviderName, resourceId);
             return resourceId;
         }
 
@@ -94,7 +91,7 @@ namespace Microsoft.Diagnostics.Monitoring.Extension.S3Storage
         {
             return !string.IsNullOrEmpty(innerMessage)
                 ? string.Format(CultureInfo.CurrentCulture, Strings.ErrorMessage_EgressS3FailedDetailed, innerMessage)
-                : Strings.ErrorMessage_EgressFileFailedGeneric;
+                : Strings.ErrorMessage_EgressS3FailedGeneric;
         }
     }
 }

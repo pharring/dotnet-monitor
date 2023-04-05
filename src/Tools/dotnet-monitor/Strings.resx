@@ -642,12 +642,8 @@
 1. extensionPath: Path to the executable extension
 2. pid: Process ID of the started process</comment>
   </data>
-  <data name="LogFormatString_ExtensionDeclarationFileBroken" xml:space="preserve">
-    <value>The extension '{extensionName}' declaration file '{extensionDeclarationFile}' is missing or incorrectly formed.</value>
-    <comment>Gets the format string that is printed in the 73:ExtensionDeclarationFileBroken event.
-2 Format Parameters:
-1. extensionName The name of the extension or moniker
-2. extensionDeclarationFile: The constant name of the file where the extension is declared</comment>
+  <data name="LogFormatString_ExtensionManifestNotParsable" xml:space="preserve">
+    <value>The extension manifest file '{manifestPath}' is missing or incorrectly formed.</value>
   </data>
   <data name="LogFormatString_ExtensionEgressPayloadCompleted" xml:space="preserve">
     <value>Payload egress complete to extension process {pid}, waiting for process exit.</value>
@@ -717,14 +713,6 @@
 1 Format Parameter:
 1. extensionName: The name of the extension or moniker
 2. extension: The friendly name of the extension from the IExtension interface</comment>
-  </data>
-  <data name="LogFormatString_ExtensionProgramMissing" xml:space="preserve">
-    <value>The extension '{extensionName}''s program defined in '{extensionDeclarationFile}' is missing the program to execute '{program}'.</value>
-    <comment>Gets the format string that is printed in the 74:ExtensionProgramMissing event.
-3 Format Parameters:
-1. extensionName The name of the extension or moniker
-2. extensionDeclarationFile: The constant name of the file where the extension is declared
-3. program: The program defined to launch the executable</comment>
   </data>
   <data name="LogFormatString_ExtensionStarting" xml:space="preserve">
     <value>Starting extension '{extensionName}'.</value>
@@ -867,10 +855,6 @@
   <data name="Message_ExperienceSurvey" xml:space="preserve">
     <value>Tell us about your experience with dotnet monitor: {0}</value>
   </data>
-  <data name="Message_FolderExtensionRepoName" xml:space="preserve">
-    <value>folder '{0}'</value>
-    <comment>Gets the string for describing a folder extension repo</comment>
-  </data>
   <data name="Message_GenerateApiKey" xml:space="preserve">
     <value>Generated ApiKey for dotnet-monitor; use the following header for authorization:</value>
     <comment>Gets a header string for the output of GenerateApiKeyCommand.</comment>
@@ -907,5 +891,17 @@
   <data name="Placeholder_Redacted" xml:space="preserve">
     <value>:REDACTED:</value>
     <comment>Gets a string similar to ":REDACTED:".</comment>
+  </data>
+  <data name="ErrorMessage_ExtensionManifestInvalid" xml:space="preserve">
+    <value>Invalid extension manifest: {0}</value>
+  </data>
+  <data name="ErrorMessage_ExtensionManifestNotFound" xml:space="preserve">
+    <value>Could not find extension manifest at '{0}'</value>
+  </data>
+  <data name="ErrorMessage_ExtensionFileNotFound" xml:space="preserve">
+    <value>The extension file '{0}' for extension '{1}' could not be found.</value>
+  </data>
+  <data name="LogFormatString_EgressProviderTypeNotExist" xml:space="preserve">
+    <value>Egress provider type '{type}' does not exist.</value>
   </data>
 </root>

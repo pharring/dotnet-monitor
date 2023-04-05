@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Tools.Monitor.Egress.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Globalization;
@@ -14,31 +16,37 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem
     /// <summary>
     /// Egress provider for egressing stream data to the file system.
     /// </summary>
-    internal class FileSystemEgressProvider :
-        EgressProvider<FileSystemEgressProviderOptions>
+    internal class FileSystemEgressExtension :
+        IEgressExtension
     {
-        ILogger<FileSystemEgressProvider> _logger;
+        private readonly IEgressConfigurationProvider _configurationProvider;
+        private readonly ILogger<FileSystemEgressExtension> _logger;
 
-        public FileSystemEgressProvider(ILogger<FileSystemEgressProvider> logger)
-            : base(logger)
+        public string DisplayName => EgressProviderTypes.FileSystem;
+
+        public FileSystemEgressExtension(IEgressConfigurationProvider configurationProvider, ILogger<FileSystemEgressExtension> logger)
         {
+            _configurationProvider = configurationProvider;
             _logger = logger;
         }
 
-        public override async Task<string> EgressAsync(
-            string providerType,
+        public async Task<EgressArtifactResult> EgressArtifact(
             string providerName,
-            FileSystemEgressProviderOptions options,
+            EgressArtifactSettings settings,
             Func<Stream, CancellationToken, Task> action,
-            EgressArtifactSettings artifactSettings,
             CancellationToken token)
         {
+            IConfigurationSection configuration = _configurationProvider.GetProviderConfigurationSection(EgressProviderTypes.FileSystem, providerName);
+
+            FileSystemEgressProviderOptions options = new();
+            configuration.Bind(options);
+
             if (!Directory.Exists(options.DirectoryPath))
             {
                 WrapException(() => Directory.CreateDirectory(options.DirectoryPath));
             }
 
-            string targetPath = Path.Combine(options.DirectoryPath, artifactSettings.Name);
+            string targetPath = Path.Combine(options.DirectoryPath, settings.Name);
 
             if (!string.IsNullOrEmpty(options.IntermediateDirectoryPath))
             {
@@ -90,8 +98,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem
                 await WriteFileAsync(action, targetPath, token);
             }
 
-            Logger?.EgressProviderSavedStream(EgressProviderTypes.FileSystem, targetPath);
-            return targetPath;
+            _logger?.EgressProviderSavedStream(EgressProviderTypes.FileSystem, targetPath);
+
+            return new EgressArtifactResult() { Succeeded = true, ArtifactPath = targetPath };
         }
 
         private async Task WriteFileAsync(Func<Stream, CancellationToken, Task> action, string filePath, CancellationToken token)
@@ -99,7 +108,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem
             using Stream fileStream = WrapException(
                 () => new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None));
 
-            Logger?.EgressProviderInvokeStreamAction(EgressProviderTypes.FileSystem);
+            _logger?.EgressProviderInvokeStreamAction(EgressProviderTypes.FileSystem);
+
             await action(fileStream, token);
 
             await fileStream.FlushAsync(token);
