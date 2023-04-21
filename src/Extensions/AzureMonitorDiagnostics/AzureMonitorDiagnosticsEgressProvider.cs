@@ -88,7 +88,6 @@ internal sealed class AzureMonitorDiagnosticsEgressProvider : EgressProvider<Azu
             await blobStream.FlushAsync(token);
         }
 
-
         BlobInfo blobInfo;
         try
         {

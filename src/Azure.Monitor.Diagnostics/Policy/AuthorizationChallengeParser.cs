@@ -132,17 +132,10 @@ internal static class AuthorizationChallengeParser
         }
         else
         {
-            //the values are not quote wrapped (storage is one example of this)
-            // either find the next space indicating the delimiter to the next value, or go to the end since this is the last value.
+            // The values are not quote wrapped.
+            // Either find the next space indicating the delimiter to the next value, or go to the end since this is the last value.
             int trailingDelimiterIndex = headerValue.IndexOfAny(spaceOrComma);
-            if (trailingDelimiterIndex >= 0)
-            {
-                paramValue = headerValue.Slice(0, trailingDelimiterIndex);
-            }
-            else
-            {
-                paramValue = headerValue;
-            }
+            paramValue = trailingDelimiterIndex >= 0 ? headerValue.Slice(0, trailingDelimiterIndex) : headerValue;
         }
 
         // Slice to remove the '"paramValue"' from the parameters.
